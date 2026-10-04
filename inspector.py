@@ -120,6 +120,8 @@ print("\nVacancy links found:")
 
 # Process all vacancy links
 
+# Process all vacancy links
+
 for i, vacancy_url in enumerate(vacancy_links, start=1):
 
     print(f"\nProcessing vacancy {i} of {len(vacancy_links)}")
@@ -127,9 +129,6 @@ for i, vacancy_url in enumerate(vacancy_links, start=1):
     job = fetch_and_extract_job(vacancy_url)
 
     if job:
-
-        location = job.get("location")
-        experience = job.get("experience_months")
 
         location = job.get("location")
         experience = job.get("experience_months")
@@ -149,5 +148,6 @@ for i, vacancy_url in enumerate(vacancy_links, start=1):
             print("Job ID:", job.get("job_id"))
             print("URL:", job.get("url"))
 
-        else:
-            print("No JobPosting data found.")
+    else:
+
+        print("No JobPosting data found.")
