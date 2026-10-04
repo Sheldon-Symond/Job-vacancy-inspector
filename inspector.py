@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import json
-
+import sqlite3
 
 def extract_job(soup):
 
@@ -84,6 +84,68 @@ def fetch_and_extract_job(url):
 
     return job
 
+def save_job(job):
+    
+    if job is None:
+        return
+
+    connection = sqlite3.connect("jobs.db")
+
+    cursor = connection.cursor()
+
+    cursor.execute("""
+    INSERT OR IGNORE INTO jobs (
+        source,
+        job_id,
+        title,
+        description,
+        company,
+        location,
+        address,
+        salary_min,
+        salary_max,
+        salary_currency,
+        salary_period,
+        experience_months,
+        employment_type,
+        industry,
+        category,
+        direct_apply,
+        url,
+        date_posted,
+        valid_through,
+        date_found,
+        status
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        "Apna",
+        job.get("job_id"),
+        job.get("title"),
+        job.get("description"),
+        job.get("company"),
+        job.get("location"),
+        job.get("address"),
+        job.get("salary_min"),
+        job.get("salary_max"),
+        job.get("salary_currency"),
+        job.get("salary_period"),
+        job.get("experience_months"),
+        job.get("employment_type"),
+        job.get("industry"),
+        job.get("category"),
+        job.get("direct_apply"),
+        job.get("url"),
+        job.get("date_posted"),
+        job.get("valid_through"),
+        None,
+        "NEW"
+    ))
+
+    connection.commit()
+
+    connection.close()
+
 
 # -----------------------------------
 # MAIN PROGRAM
@@ -147,7 +209,9 @@ for i, vacancy_url in enumerate(vacancy_links, start=1):
             print("Salary:", salary_min, "-", salary_max, salary_currency, salary_period)
             print("Job ID:", job.get("job_id"))
             print("URL:", job.get("url"))
+            save_job(job)
 
     else:
 
         print("No JobPosting data found.")
+        
