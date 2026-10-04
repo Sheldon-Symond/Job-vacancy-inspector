@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import sqlite3
+from config import SEARCH_CONFIG
 
 def extract_job(soup):
 
@@ -146,6 +147,29 @@ def save_job(job):
 
     connection.close()
 
+def job_matches_keywords(job):
+
+    text = " ".join([
+        job.get("title") or "",
+        job.get("description") or "",
+        job.get("industry") or "",
+        job.get("category") or ""
+    ]).lower()
+
+    required_keywords = SEARCH_CONFIG["required_keywords"]
+    excluded_keywords = SEARCH_CONFIG["excluded_keywords"]
+
+    required_match = any(
+        keyword.lower() in text
+        for keyword in required_keywords
+    )
+
+    excluded_match = any(
+        keyword.lower() in text
+        for keyword in excluded_keywords
+    )
+
+    return required_match and not excluded_match
 
 # -----------------------------------
 # MAIN PROGRAM
@@ -199,7 +223,10 @@ for i, vacancy_url in enumerate(vacancy_links, start=1):
         salary_currency = job.get("salary_currency")
         salary_period = job.get("salary_period")
 
-        if location and "Mumbai" in location:
+        if location and any(
+            city.lower() in location.lower()
+            for city in SEARCH_CONFIG["locations"]
+        ) and job_matches_keywords(job):
 
             print("MATCH")
             print("Title:", job.get("title"))
@@ -209,9 +236,14 @@ for i, vacancy_url in enumerate(vacancy_links, start=1):
             print("Salary:", salary_min, "-", salary_max, salary_currency, salary_period)
             print("Job ID:", job.get("job_id"))
             print("URL:", job.get("url"))
+
             save_job(job)
+
+        else:
+
+            print("SKIP - Does not match filters")
 
     else:
 
-        print("No JobPosting data found.")
-        
+        print("FETCH/EXTRACTION FAILED")
+            
