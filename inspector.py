@@ -4,6 +4,12 @@ import json
 import sqlite3
 from config import SEARCH_CONFIG
 
+from sources.apna import (
+    extract_job,
+    find_vacancy_links,
+    fetch_and_extract_job
+)
+
 def extract_job(soup):
 
     json_ld = soup.find_all("script", type="application/ld+json")
