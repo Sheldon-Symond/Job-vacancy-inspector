@@ -83,3 +83,9 @@ def fetch_and_extract_job(url):
         job["url"] = url
 
     return job
+
+def get_search_page(url):
+
+    response = requests.get(url)
+
+    return response

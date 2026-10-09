@@ -5,6 +5,7 @@ import sqlite3
 from config import SEARCH_CONFIG
 
 from sources.apna import (
+    get_search_page,
     extract_job,
     find_vacancy_links,
     fetch_and_extract_job
@@ -183,7 +184,8 @@ def job_matches_keywords(job):
 
 url = input("Enter the URL to inspect: ")
 
-response = requests.get(url)
+response = get_search_page(url)
+
 
 print("\nJob Vacancy Inspector")
 print("URL:", url)
