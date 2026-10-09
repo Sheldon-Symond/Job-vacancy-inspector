@@ -1,6 +1,7 @@
 import json
 import requests
 from bs4 import BeautifulSoup
+from sources.base import JobSource
 
 
 def extract_job(soup):
@@ -89,3 +90,14 @@ def get_search_page(url):
     response = requests.get(url)
 
     return response
+
+class ApnaSource(JobSource):
+
+    def get_search_page(self, url):
+        return get_search_page(url)
+
+    def find_vacancy_links(self, soup):
+        return find_vacancy_links(soup)
+
+    def fetch_and_extract_job(self, url):
+        return fetch_and_extract_job(url)

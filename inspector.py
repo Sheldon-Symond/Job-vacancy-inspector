@@ -4,12 +4,9 @@ import json
 import sqlite3
 from config import SEARCH_CONFIG
 
-from sources.apna import (
-    get_search_page,
-    extract_job,
-    find_vacancy_links,
-    fetch_and_extract_job
-)
+from sources.apna import ApnaSource
+source = ApnaSource()
+
 
 def extract_job(soup):
 
@@ -184,7 +181,7 @@ def job_matches_keywords(job):
 
 url = input("Enter the URL to inspect: ")
 
-response = get_search_page(url)
+response = source.get_search_page(url)
 
 
 print("\nJob Vacancy Inspector")
@@ -207,7 +204,7 @@ print("Number of scripts:", len(soup.find_all("script")))
 
 # Find vacancy links from search page
 
-vacancy_links = find_vacancy_links(soup)
+vacancy_links = source.find_vacancy_links(soup)
 
 
 print("\nVacancy links found:")
@@ -220,7 +217,7 @@ for i, vacancy_url in enumerate(vacancy_links, start=1):
 
     print(f"\nProcessing vacancy {i} of {len(vacancy_links)}")
 
-    job = fetch_and_extract_job(vacancy_url)
+    job = source.fetch_and_extract_job(vacancy_url)
 
     if job:
 
