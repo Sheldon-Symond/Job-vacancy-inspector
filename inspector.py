@@ -3,10 +3,15 @@ from bs4 import BeautifulSoup
 import json
 import sqlite3
 from config import SEARCH_CONFIG
-
 from sources.apna import ApnaSource
-source = ApnaSource()
+from sources.jobhai import JobHaiSource
+apna_source = ApnaSource()
+jobhai_source = JobHaiSource()
 
+sources = [
+    ("Apna", apna_source),
+    ("Job Hai", jobhai_source)
+]
 
 def extract_job(soup):
 
@@ -89,7 +94,7 @@ def fetch_and_extract_job(url):
 
     return job
 
-def save_job(job):
+def save_job(job, source_name):
     
     if job is None:
         return
@@ -124,7 +129,7 @@ def save_job(job):
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
-        "Apna",
+        source_name,
         job.get("job_id"),
         job.get("title"),
         job.get("description"),
@@ -179,76 +184,71 @@ def job_matches_keywords(job):
 # MAIN PROGRAM
 # -----------------------------------
 
-url = input("Enter the URL to inspect: ")
+if __name__ == "__main__":
+    url = input("Enter the search URL: ")
 
-response = source.get_search_page(url)
+    for source_name, source in sources:
 
+        print("\n===================================")
+        print("SOURCE:", source_name)
+        print("===================================")
 
-print("\nJob Vacancy Inspector")
-print("URL:", url)
-print("Status Code:", response.status_code)
-print("Final URL:", response.url)
-print("Content Type:", response.headers.get("Content-Type"))
-print("Response Size:", len(response.text), "characters")
+        response = source.get_search_page(url)
 
+        print("\nJob Vacancy Inspector")
+        print("URL:", url)
+        print("Status Code:", response.status_code)
+        print("Final URL:", response.url)
+        print("Content Type:", response.headers.get("Content-Type"))
+        print("Response Size:", len(response.text), "characters")
 
-soup = BeautifulSoup(response.text, "html.parser")
+        soup = BeautifulSoup(response.text, "html.parser")
 
+        print("\nPage information:")
+        print("Number of links:", len(soup.find_all("a")))
+        print("Number of headings:", len(soup.find_all(["h1", "h2", "h3"])))
+        print("Number of forms:", len(soup.find_all("form")))
+        print("Number of scripts:", len(soup.find_all("script")))
 
-print("\nPage information:")
-print("Number of links:", len(soup.find_all("a")))
-print("Number of headings:", len(soup.find_all(["h1", "h2", "h3"])))
-print("Number of forms:", len(soup.find_all("form")))
-print("Number of scripts:", len(soup.find_all("script")))
+        vacancy_links = source.find_vacancy_links(soup)
 
+        print("\nVacancy links found:", len(vacancy_links))
 
-# Find vacancy links from search page
+        for i, vacancy_url in enumerate(vacancy_links, start=1):
 
-vacancy_links = source.find_vacancy_links(soup)
+            print(f"\nProcessing vacancy {i} of {len(vacancy_links)}")
 
+            job = source.fetch_and_extract_job(vacancy_url)
 
-print("\nVacancy links found:")
+            if job:
 
-# Process all vacancy links
+                location = job.get("location")
+                experience = job.get("experience_months")
+                salary_min = job.get("salary_min")
+                salary_max = job.get("salary_max")
+                salary_currency = job.get("salary_currency")
+                salary_period = job.get("salary_period")
 
-# Process all vacancy links
+                if location and any(
+                    city.lower() in location.lower()
+                    for city in SEARCH_CONFIG["locations"]
+                ) and job_matches_keywords(job):
 
-for i, vacancy_url in enumerate(vacancy_links, start=1):
+                    print("MATCH")
+                    print("Title:", job.get("title"))
+                    print("Company:", job.get("company"))
+                    print("Location:", location)
+                    print("Experience:", experience, "months")
+                    print("Salary:", salary_min, "-", salary_max, salary_currency, salary_period)
+                    print("Job ID:", job.get("job_id"))
+                    print("URL:", job.get("url"))
 
-    print(f"\nProcessing vacancy {i} of {len(vacancy_links)}")
+                    save_job(job, source_name)
 
-    job = source.fetch_and_extract_job(vacancy_url)
+                else:
 
-    if job:
+                    print("SKIP - Does not match filters")
 
-        location = job.get("location")
-        experience = job.get("experience_months")
-        salary_min = job.get("salary_min")
-        salary_max = job.get("salary_max")
-        salary_currency = job.get("salary_currency")
-        salary_period = job.get("salary_period")
+            else:
 
-        if location and any(
-            city.lower() in location.lower()
-            for city in SEARCH_CONFIG["locations"]
-        ) and job_matches_keywords(job):
-
-            print("MATCH")
-            print("Title:", job.get("title"))
-            print("Company:", job.get("company"))
-            print("Location:", location)
-            print("Experience:", experience, "months")
-            print("Salary:", salary_min, "-", salary_max, salary_currency, salary_period)
-            print("Job ID:", job.get("job_id"))
-            print("URL:", job.get("url"))
-
-            save_job(job)
-
-        else:
-
-            print("SKIP - Does not match filters")
-
-    else:
-
-        print("FETCH/EXTRACTION FAILED")
-            
+                print("FETCH/EXTRACTION FAILED")
