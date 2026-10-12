@@ -1,8 +1,6 @@
 SEARCH_CONFIG = {
 
-    "locations": [
-        "Mumbai"
-    ],
+    "locations": ["Mumbai"],
 
     "required_keywords": [
         "customer care",
@@ -15,4 +13,19 @@ SEARCH_CONFIG = {
         "delivery"
     ]
 
+}
+
+SOURCE_URLS = {
+    "Apna": "https://apna.co/jobs?search=true&text=Customer+Care+Executive",
+    "Job Hai": "https://www.jobhai.com/customer-care-representative-jobs-in-mumbai-cjrl"
+}
+
+SOURCE_CONFIG = {
+    "Apna": {
+        "url": SOURCE_URLS["Apna"]
+    },
+
+    "Job Hai": {
+        "url": SOURCE_URLS["Job Hai"]
+    }
 }

@@ -2,15 +2,15 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import sqlite3
-from config import SEARCH_CONFIG
+from config import SEARCH_CONFIG, SOURCE_CONFIG
 from sources.apna import ApnaSource
 from sources.jobhai import JobHaiSource
 apna_source = ApnaSource()
 jobhai_source = JobHaiSource()
 
 sources = [
-    ("Apna", apna_source),
-    ("Job Hai", jobhai_source)
+    ("Apna", apna_source, SOURCE_CONFIG["Apna"]["url"]),
+    ("Job Hai", jobhai_source, SOURCE_CONFIG["Job Hai"]["url"])
 ]
 
 def extract_job(soup):
@@ -185,9 +185,9 @@ def job_matches_keywords(job):
 # -----------------------------------
 
 if __name__ == "__main__":
-    url = input("Enter the search URL: ")
+     
 
-    for source_name, source in sources:
+    for source_name, source, url in sources:
 
         print("\n===================================")
         print("SOURCE:", source_name)
