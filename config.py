@@ -29,3 +29,8 @@ SOURCE_CONFIG = {
         "url": SOURCE_URLS["Job Hai"]
     }
 }
+
+JOB_FRESHNESS = {
+    "active_only": True,
+    "posted_within_days": 90
+}

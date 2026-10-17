@@ -1,5 +1,6 @@
 import json
 import requests
+import re
 from bs4 import BeautifulSoup
 from sources.base import JobSource
 
@@ -26,6 +27,28 @@ def find_vacancy_links(soup):
                 vacancy_links.append(href)
 
     return vacancy_links
+
+def extract_experience_range(url):
+
+    pattern = r"(\d+)-to-(\d+)(-plus)?-years"
+
+    match = re.search(pattern, url)
+
+    if not match:
+        return None
+
+    minimum = int(match.group(1))
+    maximum = match.group(2)
+
+    if match.group(3):
+        maximum = f"{maximum}+"
+    else:
+        maximum = int(maximum)
+
+    return {
+        "min_years": minimum,
+        "max_years": maximum
+    }
 
 def fetch_and_extract_job(url):
 
@@ -67,6 +90,7 @@ def fetch_and_extract_job(url):
                 "salary_currency": data.get("baseSalary", {}).get("currency"),
                 "salary_period": data.get("baseSalary", {}).get("value", {}).get("unitText"),
                 "experience_months": None,
+                "experience_range": extract_experience_range(url),
                 "industry": None,
                 "category": None,
                 "direct_apply": data.get("directApply"),
@@ -90,3 +114,6 @@ class JobHaiSource(JobSource):
 
     def fetch_and_extract_job(self, url):
         return fetch_and_extract_job(url)
+
+
+ 

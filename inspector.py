@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import sqlite3
-from config import SEARCH_CONFIG, SOURCE_CONFIG
+from config import SEARCH_CONFIG, SOURCE_CONFIG, JOB_FRESHNESS
 from sources.apna import ApnaSource
 from sources.jobhai import JobHaiSource
 apna_source = ApnaSource()
@@ -104,7 +104,7 @@ def save_job(job, source_name):
     cursor = connection.cursor()
 
     cursor.execute("""
-    INSERT OR IGNORE INTO jobs (
+    INSERT OR REPLACE INTO jobs (
         source,
         job_id,
         title,
@@ -117,6 +117,7 @@ def save_job(job, source_name):
         salary_currency,
         salary_period,
         experience_months,
+        experience_range,
         employment_type,
         industry,
         category,
@@ -127,7 +128,7 @@ def save_job(job, source_name):
         date_found,
         status
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         source_name,
         job.get("job_id"),
@@ -141,6 +142,7 @@ def save_job(job, source_name):
         job.get("salary_currency"),
         job.get("salary_period"),
         job.get("experience_months"),
+        str(job.get("experience_range")) if job.get("experience_range") else None,
         job.get("employment_type"),
         job.get("industry"),
         job.get("category"),
@@ -183,6 +185,30 @@ def job_matches_keywords(job):
 # -----------------------------------
 # MAIN PROGRAM
 # -----------------------------------
+from datetime import datetime, timezone, timedelta
+
+
+def job_is_fresh(job):
+
+    date_posted = job.get("date_posted")
+
+    if not date_posted:
+        return True
+
+    try:
+        posted_date = datetime.fromisoformat(
+            date_posted.replace("Z", "+00:00")
+        )
+
+        cutoff_date = datetime.now(timezone.utc) - timedelta(
+            days=JOB_FRESHNESS["posted_within_days"]
+        )
+
+        return posted_date >= cutoff_date
+
+    except Exception:
+        return True
+    
 
 if __name__ == "__main__":
      
@@ -219,35 +245,46 @@ if __name__ == "__main__":
             print(f"\nProcessing vacancy {i} of {len(vacancy_links)}")
 
             job = source.fetch_and_extract_job(vacancy_url)
-
+            
             if job:
 
                 location = job.get("location")
-                experience = job.get("experience_months")
+                experience = job.get("experience_range")
                 salary_min = job.get("salary_min")
                 salary_max = job.get("salary_max")
                 salary_currency = job.get("salary_currency")
                 salary_period = job.get("salary_period")
 
-                if location and any(
+                if not location or not any(
                     city.lower() in location.lower()
                     for city in SEARCH_CONFIG["locations"]
-                ) and job_matches_keywords(job):
+                ):
+                    print("SKIP - Location does not match")
+                    continue
 
-                    print("MATCH")
-                    print("Title:", job.get("title"))
-                    print("Company:", job.get("company"))
-                    print("Location:", location)
-                    print("Experience:", experience, "months")
-                    print("Salary:", salary_min, "-", salary_max, salary_currency, salary_period)
-                    print("Job ID:", job.get("job_id"))
-                    print("URL:", job.get("url"))
+                if not job_matches_keywords(job):
+                    print("SKIP - Does not match keywords")
+                    continue
 
-                    save_job(job, source_name)
+                if not job_is_fresh(job):
+                    print("SKIP - Job is older than freshness limit")
+                    continue
 
+                print("MATCH")
+                print("Title:", job.get("title"))
+                print("Company:", job.get("company"))
+                print("Location:", location)
+                if experience:
+                    experience_text = (
+                    f"{experience['min_years']} - {experience['max_years']} years")
                 else:
+                    experience_text = "Not specified"
+                print("Experience:", experience_text)
+                print("Salary:", salary_min, "-", salary_max, salary_currency, salary_period)
+                print("Job ID:", job.get("job_id"))
+                print("URL:", job.get("url"))
 
-                    print("SKIP - Does not match filters")
+                save_job(job, source_name)
 
             else:
 

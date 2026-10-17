@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     salary_period TEXT,
 
     experience_months INTEGER,
+    experience_range TEXT,
 
     employment_type TEXT,
     industry TEXT,
